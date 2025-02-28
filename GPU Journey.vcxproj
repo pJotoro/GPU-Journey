@@ -72,7 +72,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\SDL3\include;C:\VulkanSDK\1.4.304.1\Include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\HandmadeMath;C:\SDL3\include;C:\VulkanSDK\1.4.304.1\Include;$(IncludePath)</IncludePath>
     <SourcePath>$(SourcePath)</SourcePath>
     <LibraryPath>C:\VulkanSDK\1.4.304.1\Lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
@@ -162,6 +162,7 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\HandmadeMath\HandmadeMath.h" />
     <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL.h" />
     <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_assert.h" />
     <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_asyncio.h" />
@@ -271,7 +272,6 @@
     <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_xlib.h" />
     <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_xlib_xrandr.h" />
     <ClInclude Include="main.h" />
-    <ClInclude Include="resource.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
