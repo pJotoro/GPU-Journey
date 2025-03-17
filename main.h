@@ -22,24 +22,21 @@ typedef int64_t Int;
 typedef float F32;
 typedef double F64;
 
-#define ArraySize(A) (sizeof(A)/sizeof(A[0]))
+#define ARRAY_SIZE(A) (sizeof(A)/sizeof(A[0]))
 #define assert(expr) SDL_assert(expr)
-#define Clamp(X,A,B) SDL_clamp(X,A,B)
-#define Max(X,Y) SDL_max(X,Y)
-#define Min(X,Y) SDL_min(X,Y)
 
-#define Kilobyte(X) ((X)*1024LL)
-#define Megabyte(X) (Kilobyte(X)*1024LL)
-#define Gigabyte(X) (Megabyte(X)*1024LL)
-#define Terabyte(X) (Gigabyte(X)*1024LL)
+#define KILOBYTE(X) ((X)*1024LL)
+#define MEGABYTE(X) (KILOBYTE(X)*1024LL)
+#define GIGABYTE(X) (MEGABYTE(X)*1024LL)
+#define TERABYTE(X) (GIGABYTE(X)*1024LL)
 
-#define forceinline __forceinline
+#define INLINE __forceinline
 
 #define STMT(X) do {X} while (false)
 #define CHECK(EXPR) STMT(bool ok = EXPR; assert(ok);)
 #define VK_CHECK(EXPR) STMT(VkResult res = EXPR; assert(res == VK_SUCCESS);)
 
-#define HasFlag(FLAGS,FLAG) ((FLAGS & FLAG) != 0)
+#define HAS_FLAG(FLAGS, FLAG) ((FLAGS) & (FLAG))
 
 struct Arena {
 	void* data;
@@ -47,12 +44,12 @@ struct Arena {
 	Int len;
 };
 
-void* _Alloc(Arena* arena, Int size, Int align);
-void Reset(Arena* arena);
-void Free(Arena* arena);
+void* _alloc(Arena* arena, Int size, Int align);
+void reset(Arena* arena);
+void free(Arena* arena);
 
-#define Alloc(A,T) static_cast<T*>(_Alloc(A, sizeof(T), alignof(T)))
-#define AllocArray(A,T,C) static_cast<T*>(_Alloc(A, sizeof(T) * C, alignof(T)))
+#define ALLOC(A, T) static_cast<T*>(_alloc(A, sizeof(T), alignof(T)))
+#define ALLOC_ARRAY(A, T, C) static_cast<T*>(_alloc(A, sizeof(T) * C, alignof(T)))
 
 // Why is this not already a struct in Vulkan? It would make things a lot easier.
 struct VkQueueFamily {
@@ -60,8 +57,22 @@ struct VkQueueFamily {
 	VkQueue* queues;
 };
 
+#define MAX_FRAMES_IN_FLIGHT 2
+
+struct Vertex {
+	HMM_Vec2 pos;
+	HMM_Vec3 color;
+};
+
+enum Window_Visible {
+	WINDOW_VISIBLE_HIDE,
+	WINDOW_VISIBLE_SHOW,
+	WINDOW_VISIBLE_ALREADY_SHOWN,
+};
+
 struct Globals {
 	SDL_Window* window;
+	Window_Visible window_visible;
 
 	Arena arena_perm;
 	Arena arena_temp;
@@ -81,7 +92,8 @@ struct Globals {
 #endif
 
 	VkPhysicalDevice vk_physical_device;
-	VkPhysicalDeviceProperties physical_device_properties;
+	VkPhysicalDeviceProperties vk_physical_device_properties;
+	VkPhysicalDeviceMemoryProperties vk_physical_device_memory_properties;
 	
 	VkSurfaceKHR vk_surface;
 	VkSurfaceCapabilitiesKHR vk_surface_capabilities;
@@ -99,16 +111,45 @@ struct Globals {
 
 	VkDevice vk_device;
 
+	// TODO: Swapchain recreation.
 	VkSwapchainKHR vk_swapchain;
 	VkSwapchainCreateInfoKHR vk_swapchain_info;
+
 	VkImage* vk_swapchain_images;
 	VkImageView* vk_swapchain_image_views;
-	U32 vk_swapchain_image_count;
+	VkFramebuffer* vk_framebuffers;
+	union { // In case I forget that all of these have the same count.
+		U32 vk_swapchain_image_count;
+		U32 vk_swapchain_image_view_count;
+		U32 vk_framebuffers_count;
+	};
 
-	VkRenderPass vk_render_pass; // TODO
-	VkFramebuffer vk_framebuffer; // TODO
+	VkShaderModule vk_vs_module;
+	VkShaderModule vk_fs_module;
+
+	VkViewport vk_viewport;
+	VkRect2D vk_scissor;
+
+	VkRenderPass vk_render_pass;
+	VkPipelineLayout vk_pipeline_layout;
+	VkPipeline vk_graphics_pipeline;
 
 	VkCommandPool vk_command_pool;
-	VkCommandBuffer vk_command_buffer;
+
+	VkCommandBuffer vk_command_buffer[MAX_FRAMES_IN_FLIGHT];
+	VkSemaphore vk_sem_image_available[MAX_FRAMES_IN_FLIGHT];
+	VkSemaphore vk_sem_render_finished[MAX_FRAMES_IN_FLIGHT];
+	VkFence vk_fence_in_flight[MAX_FRAMES_IN_FLIGHT];
+
+	Int vk_current_frame;
+
+	VkBuffer vk_vertex_buffer;
+	VkDeviceMemory vk_vertex_buffer_memory;
+
+	VkBuffer vk_staging_buffer;
+	VkDeviceMemory vk_staging_buffer_memory;
+	bool staged_vertex_buffer;
 	// ------------------
 };
+
+U32 find_memory_type(Globals* g, U32 memory_types, VkMemoryPropertyFlags properties);

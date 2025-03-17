@@ -10,17 +10,88 @@
     <Filter Include="VulkanSDK\Volk">
       <UniqueIdentifier>{957017b2-88a7-4ca2-915b-4b46bbb87d22}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{980a5870-f753-4fda-ae03-6baa72de3be8}</UniqueIdentifier>
+    </Filter>
     <Filter Include="SDL3">
-      <UniqueIdentifier>{1b801ccd-2425-48ad-ba68-8510cd7f67ce}</UniqueIdentifier>
+      <UniqueIdentifier>{c71f5d29-2f8b-481f-9343-0810852cfcb6}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\VulkanSDK\1.4.304.1\Include\Volk\volk.c">
-      <Filter>VulkanSDK\Volk</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_screen.h">
+      <Filter>VulkanSDK\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_vi.h">
+      <Filter>VulkanSDK\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_wayland.h">
+      <Filter>VulkanSDK\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_win32.h">
+      <Filter>VulkanSDK\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_xcb.h">
+      <Filter>VulkanSDK\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_xlib.h">
+      <Filter>VulkanSDK\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_xlib_xrandr.h">
+      <Filter>VulkanSDK\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\utility\vk_format_utils.h">
+      <Filter>VulkanSDK\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vk_enum_string_helper.h">
+      <Filter>VulkanSDK\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vk_icd.h">
+      <Filter>VulkanSDK\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vk_layer.h">
+      <Filter>VulkanSDK\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vk_platform.h">
+      <Filter>VulkanSDK\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan.h">
+      <Filter>VulkanSDK\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_android.h">
+      <Filter>VulkanSDK\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_beta.h">
+      <Filter>VulkanSDK\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_core.h">
+      <Filter>VulkanSDK\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_directfb.h">
+      <Filter>VulkanSDK\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_fuchsia.h">
+      <Filter>VulkanSDK\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_ggp.h">
+      <Filter>VulkanSDK\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_ios.h">
+      <Filter>VulkanSDK\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_macos.h">
+      <Filter>VulkanSDK\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_metal.h">
+      <Filter>VulkanSDK\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\Volk\volk.h">
+      <Filter>VulkanSDK\Volk</Filter>
+    </ClInclude>
+    <ClInclude Include="main.h" />
+    <ClInclude Include="..\..\..\HandmadeMath\HandmadeMath.h" />
     <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL.h">
       <Filter>SDL3</Filter>
     </ClInclude>
@@ -96,6 +167,9 @@
     <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_hints.h">
       <Filter>SDL3</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_image.h">
+      <Filter>SDL3</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_init.h">
       <Filter>SDL3</Filter>
     </ClInclude>
@@ -138,16 +212,25 @@
     <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_misc.h">
       <Filter>SDL3</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_mixer.h">
+      <Filter>SDL3</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_mouse.h">
       <Filter>SDL3</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_mutex.h">
       <Filter>SDL3</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_net.h">
+      <Filter>SDL3</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_oldnames.h">
       <Filter>SDL3</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_opengl.h">
+      <Filter>SDL3</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_opengl_glext.h">
       <Filter>SDL3</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_opengles.h">
@@ -166,9 +249,6 @@
       <Filter>SDL3</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_opengles2_khrplatform.h">
-      <Filter>SDL3</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_opengl_glext.h">
       <Filter>SDL3</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_pen.h">
@@ -201,10 +281,16 @@
     <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_revision.h">
       <Filter>SDL3</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_rtf.h">
+      <Filter>SDL3</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_scancode.h">
       <Filter>SDL3</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_sensor.h">
+      <Filter>SDL3</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_shadercross.h">
       <Filter>SDL3</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_stdinc.h">
@@ -219,37 +305,7 @@
     <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_system.h">
       <Filter>SDL3</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_test.h">
-      <Filter>SDL3</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_test_assert.h">
-      <Filter>SDL3</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_test_common.h">
-      <Filter>SDL3</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_test_compare.h">
-      <Filter>SDL3</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_test_crc32.h">
-      <Filter>SDL3</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_test_font.h">
-      <Filter>SDL3</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_test_fuzzer.h">
-      <Filter>SDL3</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_test_harness.h">
-      <Filter>SDL3</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_test_log.h">
-      <Filter>SDL3</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_test_md5.h">
-      <Filter>SDL3</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_test_memory.h">
+    <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_textengine.h">
       <Filter>SDL3</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_thread.h">
@@ -267,6 +323,9 @@
     <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_tray.h">
       <Filter>SDL3</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_ttf.h">
+      <Filter>SDL3</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_version.h">
       <Filter>SDL3</Filter>
     </ClInclude>
@@ -276,76 +335,14 @@
     <ClInclude Include="..\..\..\SDL3\include\SDL3\SDL_vulkan.h">
       <Filter>SDL3</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_screen.h">
-      <Filter>VulkanSDK\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_vi.h">
-      <Filter>VulkanSDK\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_wayland.h">
-      <Filter>VulkanSDK\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_win32.h">
-      <Filter>VulkanSDK\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_xcb.h">
-      <Filter>VulkanSDK\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_xlib.h">
-      <Filter>VulkanSDK\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_xlib_xrandr.h">
-      <Filter>VulkanSDK\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\utility\vk_format_utils.h">
-      <Filter>VulkanSDK\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vk_enum_string_helper.h">
-      <Filter>VulkanSDK\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vk_icd.h">
-      <Filter>VulkanSDK\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vk_layer.h">
-      <Filter>VulkanSDK\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vk_platform.h">
-      <Filter>VulkanSDK\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan.h">
-      <Filter>VulkanSDK\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_android.h">
-      <Filter>VulkanSDK\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_beta.h">
-      <Filter>VulkanSDK\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_core.h">
-      <Filter>VulkanSDK\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_directfb.h">
-      <Filter>VulkanSDK\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_fuchsia.h">
-      <Filter>VulkanSDK\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_ggp.h">
-      <Filter>VulkanSDK\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_ios.h">
-      <Filter>VulkanSDK\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_macos.h">
-      <Filter>VulkanSDK\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\vulkan\vulkan_metal.h">
-      <Filter>VulkanSDK\vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\VulkanSDK\1.4.304.1\Include\Volk\volk.h">
-      <Filter>VulkanSDK\Volk</Filter>
-    </ClInclude>
-    <ClInclude Include="main.h" />
-    <ClInclude Include="..\..\..\HandmadeMath\HandmadeMath.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shader.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shader.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="compile_shaders.bat" />
   </ItemGroup>
 </Project>
