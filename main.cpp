@@ -44,9 +44,14 @@ static const F32 g_queue_priorities[] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.
 
 // TODO
 static const Vertex g_vertices[] = {
-	{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-	{{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-	{{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+	{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+	{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+	{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+};
+
+static const U16 g_indices[] = {
+	0, 1, 2, 2, 3, 0,
 };
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
@@ -453,10 +458,29 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		VK_CHECK(vkBindBufferMemory(g->vk_device, g->vk_vertex_buffer, g->vk_vertex_buffer_memory, 0));
 	}
 
+	// create index buffer
+	{
+		VkBufferCreateInfo buffer_info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+		buffer_info.size = sizeof(g_indices);
+		buffer_info.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+		buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		VK_CHECK(vkCreateBuffer(g->vk_device, &buffer_info, nullptr, &g->vk_index_buffer));
+
+		VkMemoryRequirements mem_req;
+		vkGetBufferMemoryRequirements(g->vk_device, g->vk_index_buffer, &mem_req);
+
+		VkMemoryAllocateInfo mem_info = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
+		mem_info.allocationSize = mem_req.size;
+		mem_info.memoryTypeIndex = find_memory_type(g, mem_req.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+		VK_CHECK(vkAllocateMemory(g->vk_device, &mem_info, nullptr, &g->vk_index_buffer_memory));
+		VK_CHECK(vkBindBufferMemory(g->vk_device, g->vk_index_buffer, g->vk_index_buffer_memory, 0));
+	}
+
 	// create staging buffer
 	{
 		VkBufferCreateInfo buffer_info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-		buffer_info.size = sizeof(g_vertices);
+		buffer_info.size = sizeof(g_vertices) + sizeof(g_indices);
 		buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 		buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		VK_CHECK(vkCreateBuffer(g->vk_device, &buffer_info, nullptr, &g->vk_staging_buffer));
@@ -466,19 +490,20 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 
 		VkMemoryAllocateInfo mem_info = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
 		mem_info.allocationSize = mem_req.size;
-		mem_info.memoryTypeIndex = find_memory_type(g, mem_req.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT| VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		mem_info.memoryTypeIndex = find_memory_type(g, mem_req.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 		VK_CHECK(vkAllocateMemory(g->vk_device, &mem_info, nullptr, &g->vk_staging_buffer_memory));
 		VK_CHECK(vkBindBufferMemory(g->vk_device, g->vk_staging_buffer, g->vk_staging_buffer_memory, 0));
 
 		void* data;
 		VK_CHECK(vkMapMemory(g->vk_device, g->vk_staging_buffer_memory, 0, buffer_info.size, 0, &data));
-		memcpy(data, g_vertices, buffer_info.size);
+		memcpy(data, g_vertices, sizeof(g_vertices));
+		Int offset = reinterpret_cast<Int>(data) + sizeof(g_vertices);
+		memcpy(reinterpret_cast<void*>(offset), g_indices, sizeof(g_indices));
 		vkUnmapMemory(g->vk_device, g->vk_staging_buffer_memory);
 	}
 
 	// TODO: Is this too hard-cody of a way to do it?
-
 	{
 		VkCommandBufferAllocateInfo info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
 		info.commandPool = g->vk_command_pool;
@@ -535,11 +560,17 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
 		VK_CHECK(vkBeginCommandBuffer(cb, &info));
 	}
 
-	if (!g->staged_vertex_buffer) {
-		g->staged_vertex_buffer = true;
+	if (!g->vk_staged_buffers) {
+		g->vk_staged_buffers = true;
 
-		VkBufferCopy region = {0, 0, sizeof(g_vertices)};
-		vkCmdCopyBuffer(cb, g->vk_staging_buffer, g->vk_vertex_buffer, 1, &region);
+		{
+			VkBufferCopy region = { 0, 0, sizeof(g_vertices) };
+			vkCmdCopyBuffer(cb, g->vk_staging_buffer, g->vk_vertex_buffer, 1, &region);
+		}
+		{
+			VkBufferCopy region = { sizeof(g_vertices), 0, sizeof(g_indices)};
+			vkCmdCopyBuffer(cb, g->vk_staging_buffer, g->vk_index_buffer, 1, &region);
+		}
 	}
 
 	{
@@ -563,7 +594,9 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
 		vkCmdBindVertexBuffers(cb, 0, 1, &g->vk_vertex_buffer, &offset);
 	}
 
-	vkCmdDraw(cb, ARRAY_SIZE(g_vertices), 1, 0, 0);
+	vkCmdBindIndexBuffer(cb, g->vk_index_buffer, 0, VK_INDEX_TYPE_UINT16);
+
+	vkCmdDrawIndexed(cb, ARRAY_SIZE(g_indices), 1, 0, 0, 0);
 
 	vkCmdEndRenderPass(cb);
 

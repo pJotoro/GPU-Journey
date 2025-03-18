@@ -146,9 +146,13 @@ struct Globals {
 	VkBuffer vk_vertex_buffer;
 	VkDeviceMemory vk_vertex_buffer_memory;
 
+	VkBuffer vk_index_buffer;
+	VkDeviceMemory vk_index_buffer_memory;
+
 	VkBuffer vk_staging_buffer;
 	VkDeviceMemory vk_staging_buffer_memory;
-	bool staged_vertex_buffer;
+	bool vk_staged_buffers;
+
 	// ------------------
 };
 
