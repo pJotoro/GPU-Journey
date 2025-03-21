@@ -1,5 +1,6 @@
 #pragma once
 
+#pragma warning(push, 0)
 #include <Volk/volk.h>
 
 #define SDL_MAIN_USE_CALLBACKS 1
@@ -8,6 +9,7 @@
 #include <SDL3/SDL_vulkan.h>
 
 #include <HandmadeMath.h>
+#pragma warning(pop)
 
 typedef uint8_t U8;
 typedef uint16_t U16;
@@ -49,7 +51,7 @@ void reset(Arena* arena);
 void free(Arena* arena);
 
 #define ALLOC(A, T) static_cast<T*>(_alloc(A, sizeof(T), alignof(T)))
-#define ALLOC_ARRAY(A, T, C) static_cast<T*>(_alloc(A, sizeof(T) * C, alignof(T)))
+#define ALLOC_ARRAY(A, T, C) static_cast<T*>(_alloc(A, static_cast<Int>(sizeof(T) * C), alignof(T)))
 
 // Why is this not already a struct in Vulkan? It would make things a lot easier.
 struct VkQueueFamily {
@@ -64,12 +66,18 @@ struct Vertex {
 	HMM_Vec3 color;
 };
 
+struct UniformBufferObject {
+	alignas(16) HMM_Mat4 model, view, proj;
+};
+
 enum Window_Visible {
 	WINDOW_VISIBLE_HIDE,
 	WINDOW_VISIBLE_SHOW,
 	WINDOW_VISIBLE_ALREADY_SHOWN,
 };
 
+#pragma warning(push)
+#pragma warning(disable: 4820) // Padding doesn't matter here because there is only one.
 struct Globals {
 	SDL_Window* window;
 	Window_Visible window_visible;
@@ -131,10 +139,14 @@ struct Globals {
 	VkRect2D vk_scissor;
 
 	VkRenderPass vk_render_pass;
+	VkDescriptorSetLayout vk_descriptor_set_layout;
 	VkPipelineLayout vk_pipeline_layout;
 	VkPipeline vk_graphics_pipeline;
 
 	VkCommandPool vk_command_pool;
+	
+	VkDescriptorPool vk_descriptor_pool;
+	VkDescriptorSet vk_descriptor_sets[MAX_FRAMES_IN_FLIGHT];
 
 	VkCommandBuffer vk_command_buffer[MAX_FRAMES_IN_FLIGHT];
 	VkSemaphore vk_sem_image_available[MAX_FRAMES_IN_FLIGHT];
@@ -153,7 +165,14 @@ struct Globals {
 	VkDeviceMemory vk_staging_buffer_memory;
 	bool vk_staged_buffers;
 
+	VkBuffer vk_uniform_buffer;
+	VkDeviceMemory vk_uniform_buffer_memory;
+	void* vk_uniform_buffer_mapped;
+
+	I64 start_time;
+
 	// ------------------
 };
+#pragma warning(pop)
 
 U32 find_memory_type(Globals* g, U32 memory_types, VkMemoryPropertyFlags properties);

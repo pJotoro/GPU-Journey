@@ -1,34 +1,27 @@
 #include "main.h"
 
+// These should always be disabled as they are really stupid.
+#pragma warning(disable: 4548) // breaks CHECK and VK_CHECK
+#pragma warning(disable: 5246) // breaks HMM vectors
+
 // TODO
 #define SCREEN_WIDTH 1920
 #define SCREEN_HEIGHT 1080
 
 #ifdef _DEBUG
+#pragma warning(disable: 4100)
 VkBool32 VKAPI_CALL vk_debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT severity, VkDebugUtilsMessageTypeFlagsEXT types, const VkDebugUtilsMessengerCallbackDataEXT* data, void* user_data) {
-	Globals* g = static_cast<Globals*>(user_data);
+#pragma warning(default: 4100)
 
-	SDL_LogCategory category = SDL_LOG_CATEGORY_GPU;
-	SDL_LogPriority priority = SDL_LOG_PRIORITY_INVALID;
-	if (HAS_FLAG(severity, VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)) {
-		priority = SDL_LOG_PRIORITY_VERBOSE;
-	}
-	else if (HAS_FLAG(severity, VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)) {
-		priority = SDL_LOG_PRIORITY_ERROR;
-	}
-	else if (HAS_FLAG(severity, VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)) {
-		priority = SDL_LOG_PRIORITY_WARN;
-	}
-	else if (HAS_FLAG(severity, VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)) {
-		priority = SDL_LOG_PRIORITY_INFO;
-	}
-	SDL_LogMessage(category, priority, data->pMessage);
+	SDL_Log("Vulkan: %s", data->pMessage);
 
 	return VK_FALSE;
 }
 #endif
  
 // TODO: Search for supported extensions.
+// TODO: remove global variables.
+
 #ifdef _DEBUG
 static const char* const g_vk_layers[] = { "VK_LAYER_KHRONOS_validation", "VK_LAYER_LUNARG_monitor" };
 static const char* const g_vk_instance_extensions[] = { "VK_KHR_surface", "VK_KHR_win32_surface", "VK_EXT_debug_utils" };
@@ -39,22 +32,24 @@ static const char* const g_vk_instance_extensions[] = { "VK_KHR_surface", "VK_KH
 static const char* const g_vk_device_extensions[] = { "VK_KHR_swapchain" };
 #endif
 
-// TODO
 static const F32 g_queue_priorities[] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
 
-// TODO
+#pragma warning(disable: 5246)
 static const Vertex g_vertices[] = {
 	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
 	{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
 	{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
 	{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
 };
+#pragma warning(default: 5246)
 
 static const U16 g_indices[] = {
 	0, 1, 2, 2, 3, 0,
 };
 
+#pragma warning(disable: 4100)
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
+#pragma warning(default: 4100)
 	CHECK(SDL_Init(SDL_INIT_VIDEO));
 
 	Globals* g;
@@ -69,13 +64,16 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		g->arena_temp = arena_temp;
 	}
 
+	CHECK(SDL_GetCurrentTime(&g->start_time));
 
 	SDL_WindowFlags flags = SDL_WINDOW_VULKAN|SDL_WINDOW_HIGH_PIXEL_DENSITY|SDL_WINDOW_HIDDEN;
 	g->window = SDL_CreateWindow("GPU Journey", SCREEN_WIDTH, SCREEN_HEIGHT, flags); assert(g->window);
 
 	{
-		PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = reinterpret_cast<PFN_vkGetInstanceProcAddr>(SDL_Vulkan_GetVkGetInstanceProcAddr()); assert(vkGetInstanceProcAddr);
-		volkInitializeCustom(vkGetInstanceProcAddr);
+#pragma warning(disable: 4191)
+		PFN_vkGetInstanceProcAddr p = reinterpret_cast<PFN_vkGetInstanceProcAddr>(SDL_Vulkan_GetVkGetInstanceProcAddr()); assert(p);
+#pragma warning(default: 4191)
+		volkInitializeCustom(p);
 	}
 
 #if 0
@@ -126,6 +124,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 	}
 #endif
 	
+	// create_instance
 	{
 		VkApplicationInfo app_info = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
 		VkInstanceCreateInfo create_info = {VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
@@ -159,8 +158,9 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 	
 	volkLoadInstanceOnly(g->vk_instance);
 
+	// get_physical_device
 	{
-		// TODO
+		// TODO: Query all available physical devices.
 		U32 physical_device_count = 1;
 		VK_CHECK(vkEnumeratePhysicalDevices(g->vk_instance, &physical_device_count, &g->vk_physical_device));
 		vkGetPhysicalDeviceProperties(g->vk_physical_device, &g->vk_physical_device_properties);
@@ -192,6 +192,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 	}
 #endif
 
+	// create_device_and_get_device_queues
 	{
 		vkGetPhysicalDeviceQueueFamilyProperties(g->vk_physical_device, &g->vk_queue_family_count, nullptr);
 		VkQueueFamilyProperties* queue_family_properties = ALLOC_ARRAY(&g->arena_temp, VkQueueFamilyProperties, g->vk_queue_family_count);
@@ -267,7 +268,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		}
 	}
 
-	// CreateShaderModule
+	// create_shader_module
 	{
 		size_t len;
 		void* data = SDL_LoadFile("vert.spv", &len); assert(data);
@@ -278,7 +279,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		VK_CHECK(vkCreateShaderModule(g->vk_device, &info, nullptr, &g->vk_vs_module));
 	}
 
-	// CreateShaderModule
+	// create_shader_module
 	{
 		size_t len;
 		void* data = SDL_LoadFile("frag.spv", &len); assert(data);
@@ -289,6 +290,68 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		VK_CHECK(vkCreateShaderModule(g->vk_device, &info, nullptr, &g->vk_fs_module));
 	}
 
+	// create_descriptor_set_layout
+	{
+		VkDescriptorSetLayoutBinding b = {};
+		b.binding = 0;
+		b.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		b.descriptorCount = 1;
+		b.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+		VkDescriptorSetLayoutCreateInfo info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+		info.bindingCount = 1;
+		info.pBindings = &b;
+		VK_CHECK(vkCreateDescriptorSetLayout(g->vk_device, &info, nullptr, &g->vk_descriptor_set_layout));
+	}
+
+	// create_pipeline_layout
+	{
+		VkPipelineLayoutCreateInfo pipeline_layout_info = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+		pipeline_layout_info.setLayoutCount = 1;
+		pipeline_layout_info.pSetLayouts = &g->vk_descriptor_set_layout;
+		VK_CHECK(vkCreatePipelineLayout(g->vk_device, &pipeline_layout_info, nullptr, &g->vk_pipeline_layout));
+	}
+
+	// create_render_pass
+	{
+		VkAttachmentDescription color_attachment = {};
+		color_attachment.format = g->vk_swapchain_info.imageFormat;
+		color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+		color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+		VkAttachmentReference color_attachment_ref = {};
+		color_attachment_ref.attachment = 0; // index in attachments array
+		color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		VkSubpassDescription subpass = {};
+		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		subpass.colorAttachmentCount = 1;
+		subpass.pColorAttachments = &color_attachment_ref;
+
+		VkSubpassDependency subpass_dependency = {};
+		subpass_dependency.srcSubpass = VK_SUBPASS_EXTERNAL; // implicit subpass before and after
+		subpass_dependency.dstSubpass = 0; // subpass index
+		subpass_dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		subpass_dependency.srcAccessMask = 0;
+		subpass_dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		subpass_dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+		VkRenderPassCreateInfo info = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
+		info.attachmentCount = 1;
+		info.pAttachments = &color_attachment;
+		info.subpassCount = 1;
+		info.pSubpasses = &subpass;
+		info.dependencyCount = 1;
+		info.pDependencies = &subpass_dependency;
+		VK_CHECK(vkCreateRenderPass(g->vk_device, &info, nullptr, &g->vk_render_pass));
+	}
+
+	// create_graphics_pipeline
 	{
 		VkPipelineShaderStageCreateInfo vert_info = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
 		vert_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -344,9 +407,9 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		g->vk_viewport.width = static_cast<F32>(g->vk_swapchain_info.imageExtent.width);
 		g->vk_viewport.height = static_cast<F32>(g->vk_swapchain_info.imageExtent.height);
 		g->vk_viewport.maxDepth = 1.0f;
-		
+
 		g->vk_scissor.extent = g->vk_swapchain_info.imageExtent;
-		
+
 		VkPipelineViewportStateCreateInfo viewport_info = { VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
 		viewport_info.viewportCount = 1;
 		viewport_info.scissorCount = 1;
@@ -366,45 +429,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		blend_info.attachmentCount = 1;
 		blend_info.pAttachments = &blend_attachment_info;
 
-		VkPipelineLayoutCreateInfo pipeline_layout_info = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
-		VK_CHECK(vkCreatePipelineLayout(g->vk_device, &pipeline_layout_info, nullptr, &g->vk_pipeline_layout));
-
-		VkAttachmentDescription color_attachment = {};
-		color_attachment.format = g->vk_swapchain_info.imageFormat;
-		color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-		color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-		VkAttachmentReference color_attachment_ref = {};
-		color_attachment_ref.attachment = 0; // index in attachments array
-		color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-		VkSubpassDescription subpass = {};
-		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpass.colorAttachmentCount = 1;
-		subpass.pColorAttachments = &color_attachment_ref;
-
-		VkSubpassDependency subpass_dependency = {};
-		subpass_dependency.srcSubpass = VK_SUBPASS_EXTERNAL; // implicit subpass before and after
-		subpass_dependency.dstSubpass = 0; // subpass index
-		subpass_dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		subpass_dependency.srcAccessMask = 0;
-		subpass_dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		subpass_dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-		VkRenderPassCreateInfo render_pass_info = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
-		render_pass_info.attachmentCount = 1;
-		render_pass_info.pAttachments = &color_attachment;
-		render_pass_info.subpassCount = 1;
-		render_pass_info.pSubpasses = &subpass;
-		render_pass_info.dependencyCount = 1;
-		render_pass_info.pDependencies = &subpass_dependency;
-		VK_CHECK(vkCreateRenderPass(g->vk_device, &render_pass_info, nullptr, &g->vk_render_pass));
-
 		VkGraphicsPipelineCreateInfo graphics_pipeline_info = { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
 		graphics_pipeline_info.stageCount = 2;
 		graphics_pipeline_info.pStages = shader_stages;
@@ -418,7 +442,10 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		graphics_pipeline_info.layout = g->vk_pipeline_layout;
 		graphics_pipeline_info.renderPass = g->vk_render_pass;
 		VK_CHECK(vkCreateGraphicsPipelines(g->vk_device, VK_NULL_HANDLE, 1, &graphics_pipeline_info, nullptr, &g->vk_graphics_pipeline));
+	}
 
+	// create_framebuffers
+	{
 		g->vk_framebuffers = ALLOC_ARRAY(&g->arena_perm, VkFramebuffer, g->vk_swapchain_image_count);
 		for (U32 i = 0; i < g->vk_swapchain_image_count; i++) {
 			VkFramebufferCreateInfo info = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
@@ -432,6 +459,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		}
 	}
 
+	// create_command_pool
 	{
 		VkCommandPoolCreateInfo info = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
 		info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -439,7 +467,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		VK_CHECK(vkCreateCommandPool(g->vk_device, &info, nullptr, &g->vk_command_pool));
 	}
 
-	// create vertex buffer
+	// create_vertex_buffer
 	{
 		VkBufferCreateInfo buffer_info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 		buffer_info.size = sizeof(g_vertices);
@@ -458,7 +486,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		VK_CHECK(vkBindBufferMemory(g->vk_device, g->vk_vertex_buffer, g->vk_vertex_buffer_memory, 0));
 	}
 
-	// create index buffer
+	// create_index_buffer
 	{
 		VkBufferCreateInfo buffer_info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 		buffer_info.size = sizeof(g_indices);
@@ -477,7 +505,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		VK_CHECK(vkBindBufferMemory(g->vk_device, g->vk_index_buffer, g->vk_index_buffer_memory, 0));
 	}
 
-	// create staging buffer
+	// create_staging_buffer
 	{
 		VkBufferCreateInfo buffer_info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 		buffer_info.size = sizeof(g_vertices) + sizeof(g_indices);
@@ -498,12 +526,86 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		void* data;
 		VK_CHECK(vkMapMemory(g->vk_device, g->vk_staging_buffer_memory, 0, buffer_info.size, 0, &data));
 		memcpy(data, g_vertices, sizeof(g_vertices));
-		Int offset = reinterpret_cast<Int>(data) + sizeof(g_vertices);
+		UInt offset = reinterpret_cast<UInt>(data) + sizeof(g_vertices);
 		memcpy(reinterpret_cast<void*>(offset), g_indices, sizeof(g_indices));
 		vkUnmapMemory(g->vk_device, g->vk_staging_buffer_memory);
 	}
 
-	// TODO: Is this too hard-cody of a way to do it?
+	// create_uniform_buffer
+	{
+		VkBufferCreateInfo buffer_info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+		buffer_info.size = sizeof(UniformBufferObject) * 2;
+		buffer_info.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+		buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		VK_CHECK(vkCreateBuffer(g->vk_device, &buffer_info, nullptr, &g->vk_uniform_buffer));
+
+		VkMemoryRequirements mem_req;
+		vkGetBufferMemoryRequirements(g->vk_device, g->vk_uniform_buffer, &mem_req);
+
+		VkMemoryAllocateInfo mem_info = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
+		mem_info.allocationSize = mem_req.size;
+		mem_info.memoryTypeIndex = find_memory_type(g, mem_req.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+		VK_CHECK(vkAllocateMemory(g->vk_device, &mem_info, nullptr, &g->vk_uniform_buffer_memory));
+		VK_CHECK(vkBindBufferMemory(g->vk_device, g->vk_uniform_buffer, g->vk_uniform_buffer_memory, 0));
+
+		VK_CHECK(vkMapMemory(g->vk_device, g->vk_uniform_buffer_memory, 0, mem_req.size, 0, &g->vk_uniform_buffer_mapped));
+	}
+
+	// create_descriptor_pool
+	{
+		VkDescriptorPoolSize size = {};
+		size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		size.descriptorCount = MAX_FRAMES_IN_FLIGHT;
+
+		VkDescriptorPoolCreateInfo info = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
+		info.poolSizeCount = 1;
+		info.pPoolSizes = &size;
+		info.maxSets = MAX_FRAMES_IN_FLIGHT;
+		VK_CHECK(vkCreateDescriptorPool(g->vk_device, &info, nullptr, &g->vk_descriptor_pool));
+	}
+
+	// create_descriptor_sets
+	{
+		VkDescriptorSetAllocateInfo info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+		info.descriptorPool = g->vk_descriptor_pool;
+		info.descriptorSetCount = MAX_FRAMES_IN_FLIGHT;
+		VkDescriptorSetLayout layouts[] = { g->vk_descriptor_set_layout, g->vk_descriptor_set_layout };
+		info.pSetLayouts = layouts;
+		VK_CHECK(vkAllocateDescriptorSets(g->vk_device, &info, g->vk_descriptor_sets));
+	}
+
+	// update_descriptor_sets
+	{
+		VkDescriptorBufferInfo buffer_infos[2] = {};
+		VkWriteDescriptorSet write_infos[2] = {};
+
+		buffer_infos[0].buffer = g->vk_uniform_buffer;
+		buffer_infos[0].offset = 0;
+		buffer_infos[0].range = sizeof(UniformBufferObject);
+
+		buffer_infos[1].buffer = g->vk_uniform_buffer;
+		buffer_infos[1].offset = sizeof(UniformBufferObject);
+		buffer_infos[1].range = sizeof(UniformBufferObject);
+
+		write_infos[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		write_infos[0].dstSet = g->vk_descriptor_sets[0];
+		write_infos[0].dstBinding = 0;
+		write_infos[0].descriptorCount = 1;
+		write_infos[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		write_infos[0].pBufferInfo = &buffer_infos[0];
+
+		write_infos[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		write_infos[1].dstSet = g->vk_descriptor_sets[1];
+		write_infos[1].dstBinding = 0;
+		write_infos[1].descriptorCount = 1;
+		write_infos[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		write_infos[1].pBufferInfo = &buffer_infos[1];
+		
+		vkUpdateDescriptorSets(g->vk_device, ARRAY_SIZE(write_infos), write_infos, 0, nullptr);
+	}
+
+	// allocate_command_buffers
 	{
 		VkCommandBufferAllocateInfo info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
 		info.commandPool = g->vk_command_pool;
@@ -511,6 +613,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		VK_CHECK(vkAllocateCommandBuffers(g->vk_device, &info, g->vk_command_buffer));
 	}
 
+	// create_semaphores
 	{
 		VkSemaphoreCreateInfo info = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 		VK_CHECK(vkCreateSemaphore(g->vk_device, &info, nullptr, &g->vk_sem_image_available[0]));
@@ -519,6 +622,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		VK_CHECK(vkCreateSemaphore(g->vk_device, &info, nullptr, &g->vk_sem_render_finished[1]));
 	}
 
+	// create_fences
 	{
 		VkFenceCreateInfo info = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
 		info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
@@ -596,10 +700,27 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
 
 	vkCmdBindIndexBuffer(cb, g->vk_index_buffer, 0, VK_INDEX_TYPE_UINT16);
 
+	vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, g->vk_pipeline_layout, 0, 1, &g->vk_descriptor_sets[g->vk_current_frame], 0, nullptr);
 	vkCmdDrawIndexed(cb, ARRAY_SIZE(g_indices), 1, 0, 0, 0);
 
 	vkCmdEndRenderPass(cb);
 
+	// update_uniform_buffer
+	{
+		I64 current_time;
+		CHECK(SDL_GetCurrentTime(&current_time));
+		const F32 NS_PER_SECOND = 1'000'000'000.0f;
+		F32 time = static_cast<F32>(current_time - g->start_time) / NS_PER_SECOND;
+
+		UniformBufferObject ubo = {};
+		ubo.model = HMM_Rotate_RH(time * HMM_AngleDeg(90.0f), HMM_Vec3{ 0.0f, 0.0f, 1.0f });
+		ubo.view = HMM_LookAt_RH(HMM_Vec3{ 2.0f, 2.0f, 2.0f }, HMM_Vec3{ 0.0f, 0.0f, 0.0f }, HMM_Vec3{ 0.0f, 0.0f, 1.0f });
+		ubo.proj = HMM_Perspective_RH_NO(time * HMM_AngleDeg(45.0f), 16.0f / 9.0f, 0.1f, 10.0f);
+		UInt dest = reinterpret_cast<UInt>(g->vk_uniform_buffer_mapped) + g->vk_current_frame * sizeof(UniformBufferObject);
+		memcpy(reinterpret_cast<void*>(dest), &ubo, sizeof(ubo));
+	}
+
+	// submit_next_frame
 	{
 		VK_CHECK(vkEndCommandBuffer(cb));
 
@@ -625,6 +746,8 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
 	}
 
 	g->vk_current_frame = (g->vk_current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
+
+	reset(&g->arena_temp);
 
 	return SDL_APP_CONTINUE;
 }
@@ -664,7 +787,6 @@ void reset(Arena* arena) {
 
 void free(Arena* arena) {
 	free(arena->data);
-	*arena = {};
 }
 
 U32 find_memory_type(Globals* g, U32 memory_types, VkMemoryPropertyFlags properties) {
