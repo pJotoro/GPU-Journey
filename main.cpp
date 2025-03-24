@@ -1,20 +1,12 @@
 #include "main.h"
 
-// These should always be disabled as they are really stupid.
-#pragma warning(disable: 4548) // breaks CHECK and VK_CHECK
-#pragma warning(disable: 5246) // breaks HMM vectors
-
 // TODO
 #define SCREEN_WIDTH 1920
 #define SCREEN_HEIGHT 1080
 
 #ifdef _DEBUG
-#pragma warning(disable: 4100)
 VkBool32 VKAPI_CALL vk_debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT severity, VkDebugUtilsMessageTypeFlagsEXT types, const VkDebugUtilsMessengerCallbackDataEXT* data, void* user_data) {
-#pragma warning(default: 4100)
-
-	SDL_Log("Vulkan: %s", data->pMessage);
-
+	SDL_Log(data->pMessage);
 	return VK_FALSE;
 }
 #endif
@@ -34,22 +26,18 @@ static const char* const g_vk_device_extensions[] = { "VK_KHR_swapchain" };
 
 static const F32 g_queue_priorities[] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
 
-#pragma warning(disable: 5246)
 static const Vertex g_vertices[] = {
-	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-	{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-	{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-	{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+	{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+	{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+	{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
 };
-#pragma warning(default: 5246)
 
 static const U16 g_indices[] = {
 	0, 1, 2, 2, 3, 0,
 };
 
-#pragma warning(disable: 4100)
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
-#pragma warning(default: 4100)
 	CHECK(SDL_Init(SDL_INIT_VIDEO));
 
 	Globals* g;
@@ -70,59 +58,9 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 	g->window = SDL_CreateWindow("GPU Journey", SCREEN_WIDTH, SCREEN_HEIGHT, flags); assert(g->window);
 
 	{
-#pragma warning(disable: 4191)
 		PFN_vkGetInstanceProcAddr p = reinterpret_cast<PFN_vkGetInstanceProcAddr>(SDL_Vulkan_GetVkGetInstanceProcAddr()); assert(p);
-#pragma warning(default: 4191)
 		volkInitializeCustom(p);
 	}
-
-#if 0
-	VK_CHECK(vkEnumerateInstanceLayerProperties(&g->vk_supported_layer_count, nullptr));
-	g->vk_supported_layers = Alloc<VkLayerProperties>(&g->arena_perm, g->vk_supported_layer_count);
-	VK_CHECK(vkEnumerateInstanceLayerProperties(&g->vk_supported_layer_count, g->vk_supported_layers));
-
-#ifdef VK_LAYERS
-	g->vk_layers = Alloc<const char*>(&g->arena_perm, g->vk_supported_layer_count);
-	for (U32 supported_layer_idx = 0; supported_layer_idx < g->vk_supported_layer_count; supported_layer_idx++) {
-		char* layer_name = g->vk_supported_layers[supported_layer_idx].layerName;
-		SDL_Log("layers[%u].name = %s", supported_layer_idx, g->vk_supported_layers[supported_layer_idx].layerName);
-
-		if (strcmp(layer_name, "VK_LAYER_KHRONOS_validation") == 0) {
-			g->vk_layers[g->vk_layer_count] = "VK_LAYER_KHRONOS_validation";
-			g->vk_layer_count++;
-		} 
-		else if (strcmp(layer_name, "VK_LAYER_LUNARG_monitor") == 0) {
-			g->vk_layers[g->vk_layer_count] = "VK_LAYER_LUNARG_monitor";
-			g->vk_layer_count++;
-		}
-	}
-#endif
-
-	{
-		U32 vk_supported_extension_count;
-		VK_CHECK(vkEnumerateInstanceExtensionProperties(nullptr, &vk_supported_extension_count, nullptr));
-		VkExtensionProperties* vk_supported_extensions = Alloc<VkExtensionProperties>(&g->arena_temp, vk_supported_extension_count);
-		VK_CHECK(vkEnumerateInstanceExtensionProperties(nullptr, &vk_supported_extension_count, vk_supported_extensions));
-
-		g->vk_instance_extensions = Alloc<const char*>(&g->arena_perm, vk_supported_extension_count);
-
-		for (U32 supported_extension_idx = 0; supported_extension_idx < vk_supported_extension_count; supported_extension_idx++) {
-			const char* extension = vk_supported_extensions[supported_extension_idx].extensionName; // VK_KHR_surface VK_KHR_win32_surface
-			if (strcmp(extension, "VK_KHR_surface") == 0) {
-				g->vk_instance_extensions[supported_extension_idx] = "VK_KHR_surface";
-				g->vk_instance_extension_count++;
-			}
-			else if (strcmp(extension, "VK_KHR_win32_surface") == 0) {
-				g->vk_instance_extensions[supported_extension_idx] = "VK_KHR_win32_surface";
-				g->vk_instance_extension_count++;
-			}
-			else if (strcmp(extension, "VK_EXT_debug_utils") == 0) {
-				g->vk_instance_extensions[supported_extension_idx] = "VK_EXT_debug_utils";
-				g->vk_instance_extension_count++;
-			}
-		}
-	}
-#endif
 	
 	// create_instance
 	{
@@ -137,10 +75,10 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		
 		create_info.pApplicationInfo = &app_info;
 #ifdef _DEBUG
-		create_info.enabledLayerCount = ARRAY_SIZE(g_vk_layers);
+		create_info.enabledLayerCount = ARRAY_COUNT(g_vk_layers);
 		create_info.ppEnabledLayerNames = g_vk_layers;
 #endif
-		create_info.enabledExtensionCount = ARRAY_SIZE(g_vk_instance_extensions);
+		create_info.enabledExtensionCount = ARRAY_COUNT(g_vk_instance_extensions);
 		create_info.ppEnabledExtensionNames = g_vk_instance_extensions;
 
 #ifdef _DEBUG
@@ -172,25 +110,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 	vkGetPhysicalDeviceSurfaceFormatsKHR(g->vk_physical_device, g->vk_surface, &g->vk_surface_format_count, nullptr);
 	g->vk_surface_formats = ALLOC_ARRAY(&g->arena_perm, VkSurfaceFormatKHR, g->vk_surface_format_count);
 	vkGetPhysicalDeviceSurfaceFormatsKHR(g->vk_physical_device, g->vk_surface, &g->vk_surface_format_count, g->vk_surface_formats);
-	
-#if 0
-	{
-		U32 vk_supported_extension_count;
-		vkEnumerateDeviceExtensionProperties(g->vk_physical_device, nullptr, &vk_supported_extension_count, nullptr);
-		VkExtensionProperties* vk_supported_extensions = Alloc<VkExtensionProperties>(&g->arena_temp, vk_supported_extension_count);
-		vkEnumerateDeviceExtensionProperties(g->vk_physical_device, nullptr, &vk_supported_extension_count, vk_supported_extensions);
-
-		g->vk_device_extensions = Alloc<const char*>(&g->arena_perm, vk_supported_extension_count);
-		for (U32 device_extension_idx = 0; device_extension_idx < vk_supported_extension_count; device_extension_idx++) {
-			const char* extension = vk_supported_extensions[device_extension_idx].extensionName;
-			SDL_Log("extensions[%u] = %s", device_extension_idx, extension);
-			if (strcmp(extension, "VK_KHR_swapchain") == 0) {
-				g->vk_device_extensions[g->vk_device_extension_count] = "VK_KHR_swapchain";
-				g->vk_device_extension_count++;
-			}
-		}
-	}
-#endif
 
 	// create_device_and_get_device_queues
 	{
@@ -217,7 +136,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 			info.queueCreateInfoCount = g->vk_queue_family_count;
 			info.pQueueCreateInfos = queue_infos;
 			info.ppEnabledExtensionNames = g_vk_device_extensions;
-			info.enabledExtensionCount = ARRAY_SIZE(g_vk_device_extensions);
+			info.enabledExtensionCount = ARRAY_COUNT(g_vk_device_extensions);
 			info.pEnabledFeatures = &physical_device_features;
 
 			VK_CHECK(vkCreateDevice(g->vk_physical_device, &info, nullptr, &g->vk_device));
@@ -229,8 +148,8 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		for (U32 queue_family_idx = 0; queue_family_idx < g->vk_queue_family_count; queue_family_idx++) {
 			VkQueueFamily* queue_family = &g->vk_queue_families[queue_family_idx];
 			queue_family->properties = queue_family_properties[queue_family_idx];
-			queue_family->queues = ALLOC_ARRAY(&g->arena_perm, VkQueue, queue_family->properties.queueCount);
-			for (U32 queue_idx = 0; queue_idx < queue_family->properties.queueCount; queue_idx++) {
+			queue_family->queues = ALLOC_ARRAY(&g->arena_perm, VkQueue, queue_family->queue_count);
+			for (U32 queue_idx = 0; queue_idx < queue_family->queue_count; queue_idx++) {
 				vkGetDeviceQueue(g->vk_device, queue_family_idx, queue_idx, &queue_family->queues[queue_idx]);
 			}
 		}
@@ -292,15 +211,23 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 
 	// create_descriptor_set_layout
 	{
-		VkDescriptorSetLayoutBinding b = {};
-		b.binding = 0;
-		b.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		b.descriptorCount = 1;
-		b.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		VkDescriptorSetLayoutBinding b_uniform_buffer = {};
+		b_uniform_buffer.binding = 0;
+		b_uniform_buffer.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		b_uniform_buffer.descriptorCount = 1;
+		b_uniform_buffer.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+		VkDescriptorSetLayoutBinding b_sampler = {};
+		b_sampler.binding = 1;
+		b_sampler.descriptorCount = 1;
+		b_sampler.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		b_sampler.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		VkDescriptorSetLayoutBinding bindings[] = { b_uniform_buffer, b_sampler };
 
 		VkDescriptorSetLayoutCreateInfo info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-		info.bindingCount = 1;
-		info.pBindings = &b;
+		info.bindingCount = ARRAY_COUNT(bindings);
+		info.pBindings = bindings;
 		VK_CHECK(vkCreateDescriptorSetLayout(g->vk_device, &info, nullptr, &g->vk_descriptor_set_layout));
 	}
 
@@ -374,7 +301,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		};
 
 		VkPipelineDynamicStateCreateInfo dynamic_state_info = { VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
-		dynamic_state_info.dynamicStateCount = ARRAY_SIZE(dynamic_states);
+		dynamic_state_info.dynamicStateCount = ARRAY_COUNT(dynamic_states);
 		dynamic_state_info.pDynamicStates = dynamic_states;
 
 		VkVertexInputBindingDescription vertex_input_binding = {};
@@ -382,7 +309,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		vertex_input_binding.stride = sizeof(Vertex);
 		vertex_input_binding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-		VkVertexInputAttributeDescription vertex_attributes[2] = {};
+		VkVertexInputAttributeDescription vertex_attributes[3] = {};
 
 		vertex_attributes[0].binding = 0;
 		vertex_attributes[0].location = 0;
@@ -394,10 +321,15 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		vertex_attributes[1].format = VK_FORMAT_R32G32B32_SFLOAT;
 		vertex_attributes[1].offset = offsetof(Vertex, color);
 
+		vertex_attributes[2].binding = 0;
+		vertex_attributes[2].location = 2;
+		vertex_attributes[2].format = VK_FORMAT_R32G32_SFLOAT;
+		vertex_attributes[2].offset = offsetof(Vertex, tex_coord);
+
 		VkPipelineVertexInputStateCreateInfo vertex_input_info = { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
 		vertex_input_info.vertexBindingDescriptionCount = 1;
 		vertex_input_info.pVertexBindingDescriptions = &vertex_input_binding;
-		vertex_input_info.vertexAttributeDescriptionCount = ARRAY_SIZE(vertex_attributes);
+		vertex_input_info.vertexAttributeDescriptionCount = ARRAY_COUNT(vertex_attributes);
 		vertex_input_info.pVertexAttributeDescriptions = vertex_attributes;
 
 		// TODO: what does primitive restart do?
@@ -467,6 +399,66 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		VK_CHECK(vkCreateCommandPool(g->vk_device, &info, nullptr, &g->vk_command_pool));
 	}
 
+	// create_image
+	{
+		SDL_Surface* raw_surf = IMG_Load("texture.jpg");
+		g->surf = SDL_ConvertSurface(raw_surf, SDL_PIXELFORMAT_RGBA32);
+		SDL_DestroySurface(raw_surf);
+
+		g->vk_image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		g->vk_image_info.imageType = VK_IMAGE_TYPE_2D;
+		g->vk_image_info.extent.width = static_cast<uint32_t>(g->surf->w);
+		g->vk_image_info.extent.height = static_cast<uint32_t>(g->surf->h);
+		g->vk_image_info.extent.depth = 1;
+		g->vk_image_info.mipLevels = 1;
+		g->vk_image_info.arrayLayers = 1;
+		g->vk_image_info.format = VK_FORMAT_R8G8B8A8_UNORM;
+		g->vk_image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+		g->vk_image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		g->vk_image_info.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		g->vk_image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		g->vk_image_info.samples = VK_SAMPLE_COUNT_1_BIT;
+		VK_CHECK(vkCreateImage(g->vk_device, &g->vk_image_info, nullptr, &g->vk_image));
+
+		VkMemoryRequirements mem_req;
+		vkGetImageMemoryRequirements(g->vk_device, g->vk_image, &mem_req);
+
+		VkMemoryAllocateInfo mem_info = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
+		mem_info.allocationSize = mem_req.size;
+		mem_info.memoryTypeIndex = find_memory_type(g, mem_req.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+		VK_CHECK(vkAllocateMemory(g->vk_device, &mem_info, nullptr, &g->vk_image_memory));
+		VK_CHECK(vkBindImageMemory(g->vk_device, g->vk_image, g->vk_image_memory, 0));
+	}
+
+	// create_image_view
+	{
+		VkImageViewCreateInfo info = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+		info.image = g->vk_image;
+		info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		info.format = VK_FORMAT_R8G8B8A8_UNORM;
+		info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		info.subresourceRange.levelCount = 1;
+		info.subresourceRange.layerCount = 1;
+		VK_CHECK(vkCreateImageView(g->vk_device, &info, nullptr, &g->vk_image_view));
+	}
+
+	// create_sampler
+	{
+		VkSamplerCreateInfo info = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
+		info.magFilter = VK_FILTER_LINEAR;
+		info.minFilter = VK_FILTER_LINEAR;
+		info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		info.anisotropyEnable = VK_TRUE;
+		info.maxAnisotropy = g->vk_physical_device_properties.limits.maxSamplerAnisotropy;
+		info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+		info.compareOp = VK_COMPARE_OP_ALWAYS;
+		info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		VK_CHECK(vkCreateSampler(g->vk_device, &info, nullptr, &g->vk_sampler));
+	}
+
 	// create_vertex_buffer
 	{
 		VkBufferCreateInfo buffer_info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
@@ -509,6 +501,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 	{
 		VkBufferCreateInfo buffer_info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 		buffer_info.size = sizeof(g_vertices) + sizeof(g_indices);
+		buffer_info.size += g->surf->w * g->surf->h * 4;
 		buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 		buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		VK_CHECK(vkCreateBuffer(g->vk_device, &buffer_info, nullptr, &g->vk_staging_buffer));
@@ -528,13 +521,15 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		memcpy(data, g_vertices, sizeof(g_vertices));
 		UInt offset = reinterpret_cast<UInt>(data) + sizeof(g_vertices);
 		memcpy(reinterpret_cast<void*>(offset), g_indices, sizeof(g_indices));
+		offset += sizeof(g_indices);
+		memcpy(reinterpret_cast<void*>(offset), g->surf->pixels, g->surf->w* g->surf->h * 4);
 		vkUnmapMemory(g->vk_device, g->vk_staging_buffer_memory);
 	}
 
 	// create_uniform_buffer
 	{
 		VkBufferCreateInfo buffer_info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-		buffer_info.size = sizeof(UniformBufferObject) * 2;
+		buffer_info.size = sizeof(Uniform_Buffer_Object) * 2;
 		buffer_info.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 		buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		VK_CHECK(vkCreateBuffer(g->vk_device, &buffer_info, nullptr, &g->vk_uniform_buffer));
@@ -554,13 +549,14 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 
 	// create_descriptor_pool
 	{
-		VkDescriptorPoolSize size = {};
-		size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		size.descriptorCount = MAX_FRAMES_IN_FLIGHT;
+		VkDescriptorPoolSize sizes[] = {
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, MAX_FRAMES_IN_FLIGHT },
+			{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, MAX_FRAMES_IN_FLIGHT },
+		};
 
 		VkDescriptorPoolCreateInfo info = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-		info.poolSizeCount = 1;
-		info.pPoolSizes = &size;
+		info.poolSizeCount = ARRAY_COUNT(sizes); 
+		info.pPoolSizes = sizes;
 		info.maxSets = MAX_FRAMES_IN_FLIGHT;
 		VK_CHECK(vkCreateDescriptorPool(g->vk_device, &info, nullptr, &g->vk_descriptor_pool));
 	}
@@ -578,38 +574,57 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 	// update_descriptor_sets
 	{
 		VkDescriptorBufferInfo buffer_infos[2] = {};
-		VkWriteDescriptorSet write_infos[2] = {};
+		VkDescriptorImageInfo image_info = {};
+		VkWriteDescriptorSet write_infos[4] = {};
 
 		buffer_infos[0].buffer = g->vk_uniform_buffer;
 		buffer_infos[0].offset = 0;
-		buffer_infos[0].range = sizeof(UniformBufferObject);
+		buffer_infos[0].range = sizeof(Uniform_Buffer_Object);
 
 		buffer_infos[1].buffer = g->vk_uniform_buffer;
-		buffer_infos[1].offset = sizeof(UniformBufferObject);
-		buffer_infos[1].range = sizeof(UniformBufferObject);
+		buffer_infos[1].offset = sizeof(Uniform_Buffer_Object);
+		buffer_infos[1].range = sizeof(Uniform_Buffer_Object);
+
+		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		image_info.imageView = g->vk_image_view;
+		image_info.sampler = g->vk_sampler;
 
 		write_infos[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		write_infos[0].dstSet = g->vk_descriptor_sets[0];
 		write_infos[0].dstBinding = 0;
-		write_infos[0].descriptorCount = 1;
 		write_infos[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		write_infos[0].descriptorCount = 1;
 		write_infos[0].pBufferInfo = &buffer_infos[0];
 
 		write_infos[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		write_infos[1].dstSet = g->vk_descriptor_sets[1];
 		write_infos[1].dstBinding = 0;
-		write_infos[1].descriptorCount = 1;
 		write_infos[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		write_infos[1].descriptorCount = 1;
 		write_infos[1].pBufferInfo = &buffer_infos[1];
+
+		write_infos[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		write_infos[2].dstSet = g->vk_descriptor_sets[0];
+		write_infos[2].dstBinding = 1;
+		write_infos[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		write_infos[2].descriptorCount = 1;
+		write_infos[2].pImageInfo = &image_info;
+
+		write_infos[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		write_infos[3].dstSet = g->vk_descriptor_sets[1];
+		write_infos[3].dstBinding = 1;
+		write_infos[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		write_infos[3].descriptorCount = 1;
+		write_infos[3].pImageInfo = &image_info;
 		
-		vkUpdateDescriptorSets(g->vk_device, ARRAY_SIZE(write_infos), write_infos, 0, nullptr);
+		vkUpdateDescriptorSets(g->vk_device, ARRAY_COUNT(write_infos), write_infos, 0, nullptr);
 	}
 
 	// allocate_command_buffers
 	{
 		VkCommandBufferAllocateInfo info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
 		info.commandPool = g->vk_command_pool;
-		info.commandBufferCount = ARRAY_SIZE(g->vk_command_buffer);
+		info.commandBufferCount = ARRAY_COUNT(g->vk_command_buffer);
 		VK_CHECK(vkAllocateCommandBuffers(g->vk_device, &info, g->vk_command_buffer));
 	}
 
@@ -664,8 +679,8 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
 		VK_CHECK(vkBeginCommandBuffer(cb, &info));
 	}
 
-	if (!g->vk_staged_buffers) {
-		g->vk_staged_buffers = true;
+	if (!g->vk_staged) {
+		g->vk_staged= true;
 
 		{
 			VkBufferCopy region = { 0, 0, sizeof(g_vertices) };
@@ -675,6 +690,57 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
 			VkBufferCopy region = { sizeof(g_vertices), 0, sizeof(g_indices)};
 			vkCmdCopyBuffer(cb, g->vk_staging_buffer, g->vk_index_buffer, 1, &region);
 		}
+
+		{
+			VkImageMemoryBarrier barrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+			barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrier.image = g->vk_image;
+			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			barrier.subresourceRange.levelCount = 1;
+			barrier.subresourceRange.layerCount = 1;
+			barrier.srcAccessMask = 0;
+			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			vkCmdPipelineBarrier(cb, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+		}
+		{
+			VkBufferImageCopy region = {};
+			region.bufferOffset = sizeof(g_vertices) + sizeof(g_indices);
+			region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			region.imageSubresource.layerCount = 1;
+			region.imageExtent = g->vk_image_info.extent;
+			vkCmdCopyBufferToImage(cb, g->vk_staging_buffer, g->vk_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+		}
+		{
+			VkImageMemoryBarrier barrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+			barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrier.image = g->vk_image;
+			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			barrier.subresourceRange.levelCount = 1;
+			barrier.subresourceRange.layerCount = 1;
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			vkCmdPipelineBarrier(cb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+		}
+	}
+	else {
+		VkImageMemoryBarrier barrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+		barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.image = g->vk_image;
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		barrier.subresourceRange.levelCount = 1;
+		barrier.subresourceRange.layerCount = 1;
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		vkCmdPipelineBarrier(cb, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 	}
 
 	{
@@ -701,9 +767,9 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
 	vkCmdBindIndexBuffer(cb, g->vk_index_buffer, 0, VK_INDEX_TYPE_UINT16);
 
 	vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, g->vk_pipeline_layout, 0, 1, &g->vk_descriptor_sets[g->vk_current_frame], 0, nullptr);
-	vkCmdDrawIndexed(cb, ARRAY_SIZE(g_indices), 1, 0, 0, 0);
+	vkCmdDrawIndexed(cb, ARRAY_COUNT(g_indices), 1, 0, 0, 0);
 
-	vkCmdEndRenderPass(cb);
+	vkCmdEndRenderPass(cb); 
 
 	// update_uniform_buffer
 	{
@@ -712,15 +778,15 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
 		const F32 NS_PER_SECOND = 1'000'000'000.0f;
 		F32 time = static_cast<F32>(current_time - g->start_time) / NS_PER_SECOND;
 
-		UniformBufferObject ubo = {};
-		ubo.model = HMM_Rotate_RH(time * HMM_AngleDeg(90.0f), HMM_Vec3{ 0.0f, 0.0f, 1.0f });
+		Uniform_Buffer_Object ubo = {};
+		ubo.model = HMM_Rotate_RH(time * HMM_AngleDeg(90.0f), HMM_Vec3{ 1.0f, 0.0f, 1.0f });
 		ubo.view = HMM_LookAt_RH(HMM_Vec3{ 2.0f, 2.0f, 2.0f }, HMM_Vec3{ 0.0f, 0.0f, 0.0f }, HMM_Vec3{ 0.0f, 0.0f, 1.0f });
-		ubo.proj = HMM_Perspective_RH_NO(time * HMM_AngleDeg(45.0f), 16.0f / 9.0f, 0.1f, 10.0f);
-		UInt dest = reinterpret_cast<UInt>(g->vk_uniform_buffer_mapped) + g->vk_current_frame * sizeof(UniformBufferObject);
+		ubo.proj = HMM_Perspective_RH_NO(HMM_AngleDeg(45.0f), 16.0f / 9.0f, 0.1f, 10.0f);
+		UInt dest = reinterpret_cast<UInt>(g->vk_uniform_buffer_mapped) + g->vk_current_frame * sizeof(Uniform_Buffer_Object);
 		memcpy(reinterpret_cast<void*>(dest), &ubo, sizeof(ubo));
 	}
 
-	// submit_next_frame
+	// submit_next_frame 
 	{
 		VK_CHECK(vkEndCommandBuffer(cb));
 
@@ -770,7 +836,6 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
 void SDL_AppQuit(void* appstate, SDL_AppResult result) {
 
 }
-
 void* _alloc(Arena* arena, Int size, Int align) {
 	assert(align % 2 == 0);
 	Int data = reinterpret_cast<Int>(arena->data) + arena->len;
@@ -785,10 +850,6 @@ void reset(Arena* arena) {
 	arena->len = 0;
 }
 
-void free(Arena* arena) {
-	free(arena->data);
-}
-
 U32 find_memory_type(Globals* g, U32 memory_types, VkMemoryPropertyFlags properties) {
 	for (U32 memory_type = 0; memory_type < g->vk_physical_device_memory_properties.memoryTypeCount; memory_type++) {
 		if (HAS_FLAG(memory_types, 1 << memory_type) && HAS_FLAG(g->vk_physical_device_memory_properties.memoryTypes[memory_type].propertyFlags, properties)) {
@@ -799,7 +860,7 @@ U32 find_memory_type(Globals* g, U32 memory_types, VkMemoryPropertyFlags propert
 }
 
 /*
-
+ 
 Input assembler: pass raw vertex data.
 Vertex shader: runs for every vertex.
 Tessellation shader: increases mesh quality.

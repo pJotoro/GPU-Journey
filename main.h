@@ -1,15 +1,14 @@
 #pragma once
 
-#pragma warning(push, 0)
 #include <Volk/volk.h>
 
 #define SDL_MAIN_USE_CALLBACKS 1
-#include <SDL3/SDL_main.h>
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
 #include <SDL3/SDL_vulkan.h>
+#include <SDL3/SDL_image.h>
 
 #include <HandmadeMath.h>
-#pragma warning(pop)
 
 typedef uint8_t U8;
 typedef uint16_t U16;
@@ -24,7 +23,7 @@ typedef int64_t Int;
 typedef float F32;
 typedef double F64;
 
-#define ARRAY_SIZE(A) (sizeof(A)/sizeof(A[0]))
+#define ARRAY_COUNT(A) (sizeof(A)/sizeof(A[0]))
 #define assert(expr) SDL_assert(expr)
 
 #define KILOBYTE(X) ((X)*1024LL)
@@ -48,15 +47,23 @@ struct Arena {
 
 void* _alloc(Arena* arena, Int size, Int align);
 void reset(Arena* arena);
-void free(Arena* arena);
 
 #define ALLOC(A, T) static_cast<T*>(_alloc(A, sizeof(T), alignof(T)))
-#define ALLOC_ARRAY(A, T, C) static_cast<T*>(_alloc(A, static_cast<Int>(sizeof(T) * C), alignof(T)))
+#define ALLOC_ARRAY(A, T, C) static_cast<T*>(_alloc(A, sizeof(T) * C, alignof(T)))
 
 // Why is this not already a struct in Vulkan? It would make things a lot easier.
 struct VkQueueFamily {
-	VkQueueFamilyProperties properties;
 	VkQueue* queues;
+	union {
+		VkQueueFamilyProperties properties;
+		struct {
+			// I would use private here, but C++ apparently does not let me.
+			U32 __v0;
+			U32 queue_count;
+			U32 __v1;
+			U32 __v2;
+		};
+	};
 };
 
 #define MAX_FRAMES_IN_FLIGHT 2
@@ -64,9 +71,10 @@ struct VkQueueFamily {
 struct Vertex {
 	HMM_Vec2 pos;
 	HMM_Vec3 color;
+	HMM_Vec2 tex_coord;
 };
 
-struct UniformBufferObject {
+struct Uniform_Buffer_Object {
 	alignas(16) HMM_Mat4 model, view, proj;
 };
 
@@ -76,8 +84,6 @@ enum Window_Visible {
 	WINDOW_VISIBLE_ALREADY_SHOWN,
 };
 
-#pragma warning(push)
-#pragma warning(disable: 4820) // Padding doesn't matter here because there is only one.
 struct Globals {
 	SDL_Window* window;
 	Window_Visible window_visible;
@@ -87,17 +93,6 @@ struct Globals {
 
 	// ----- Vulkan -----
 	VkInstance vk_instance;
-
-#if 0
-	VkLayerProperties* vk_supported_layers;
-	U32 vk_supported_layer_count;
-
-	const char* const* vk_layers;
-	U32 vk_layer_count;
-
-	const char* const* vk_instance_extensions;
-	U32 vk_instance_extension_count;
-#endif
 
 	VkPhysicalDevice vk_physical_device;
 	VkPhysicalDeviceProperties vk_physical_device_properties;
@@ -111,11 +106,6 @@ struct Globals {
 	VkQueueFamily* vk_queue_families;
 	U32 vk_queue_family_count;
 	VkQueue vk_queue;
-
-#if 0
-	const char** vk_device_extensions;
-	U32 vk_device_extension_count;
-#endif
 
 	VkDevice vk_device;
 
@@ -163,7 +153,7 @@ struct Globals {
 
 	VkBuffer vk_staging_buffer;
 	VkDeviceMemory vk_staging_buffer_memory;
-	bool vk_staged_buffers;
+	bool vk_staged;
 
 	VkBuffer vk_uniform_buffer;
 	VkDeviceMemory vk_uniform_buffer_memory;
@@ -171,8 +161,15 @@ struct Globals {
 
 	I64 start_time;
 
+	SDL_Surface* surf;
+	VkImageCreateInfo vk_image_info;
+	VkImage vk_image;
+	VkDeviceMemory vk_image_memory;
+	VkImageView vk_image_view;
+
+	VkSampler vk_sampler;
+
 	// ------------------
 };
-#pragma warning(pop)
 
 U32 find_memory_type(Globals* g, U32 memory_types, VkMemoryPropertyFlags properties);
