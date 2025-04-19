@@ -30,23 +30,8 @@ static std::array<const char* const, 1> g_vk_device_extensions{ "VK_KHR_swapchai
 
 static std::array<const float, 16> g_queue_priorities{ 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
 
-static const std::array<Vertex, 8> g_vertices{
-	Vertex
-	{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-	{{ 0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-	{{ 0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-	{{-0.5f,  0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-
-	{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-	{{ 0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-	{{ 0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-	{{-0.5f,  0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
-};
-
-static std::array<const uint16_t, 12> g_indices{ 0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4 };
-
 #define VK_CHECK(EXPR) STMT(VkResult res = EXPR; SDL_assert(res == VK_SUCCESS);)
-#define SDL_CHECK(EXPR) STMT(if (!EXPR) { SDL_Log(SDL_GetError()); return SDL_APP_FAILURE; })
+#define SDL_CHECK(EXPR) STMT(auto res = EXPR; SDL_assert(res && SDL_GetError());)
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 	SDL_CHECK(SDL_Init(SDL_INIT_VIDEO));
@@ -66,8 +51,10 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 
 	SDL_CHECK(SDL_GetCurrentTime(&ctx->start_time));
 
-	SDL_WindowFlags flags{ SDL_WINDOW_VULKAN | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN };
-	ctx->window = SDL_CreateWindow("GPU Journey", SCREEN_WIDTH, SCREEN_HEIGHT, flags); SDL_CHECK(ctx->window);
+	{
+		SDL_WindowFlags flags{ SDL_WINDOW_VULKAN | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN };
+		ctx->window = SDL_CreateWindow("GPU Journey", SCREEN_WIDTH, SCREEN_HEIGHT, flags); SDL_CHECK(ctx->window);
+	}
 
 	{
 		PFN_vkGetInstanceProcAddr p{ reinterpret_cast<PFN_vkGetInstanceProcAddr>(SDL_Vulkan_GetVkGetInstanceProcAddr()) }; SDL_CHECK(p);
@@ -176,7 +163,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		ctx->vk_queues = ctx->arena_perm.alloc_span<std::span<VkQueue>>(ctx->vk_queue_family_properties.size());
 		for (size_t queue_family_idx = 0; queue_family_idx < ctx->vk_queue_family_properties.size(); queue_family_idx += 1) {
 			ctx->vk_queues[queue_family_idx] = ctx->arena_perm.alloc_span<VkQueue>(ctx->vk_queue_family_properties[queue_family_idx].queueCount);
-			for (uint32_t queue_idx = 0; queue_idx < ctx->vk_queue_family_properties[queue_family_idx].queueCount; queue_idx++) {
+			for (uint32_t queue_idx = 0; queue_idx < ctx->vk_queue_family_properties[queue_family_idx].queueCount; queue_idx += 1) {
 				vkGetDeviceQueue(ctx->vk_device, static_cast<uint32_t>(queue_family_idx), queue_idx, ctx->vk_queues[queue_family_idx].data());
 			}
 		}
@@ -213,7 +200,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 	// create_swapchain_image_view
 	{
 		ctx->vk_swapchain_image_views = ctx->arena_perm.alloc_span<VkImageView>(ctx->vk_swapchain_images.size());
-		for (size_t swapchain_image_idx = 0; swapchain_image_idx < ctx->vk_swapchain_images.size(); swapchain_image_idx++) {
+		for (size_t swapchain_image_idx = 0; swapchain_image_idx < ctx->vk_swapchain_images.size(); swapchain_image_idx += 1) {
 			VkImageViewCreateInfo info{ 
 				.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 				.image = ctx->vk_swapchain_images[swapchain_image_idx],
@@ -522,6 +509,28 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		VK_CHECK(vkCreateImage(ctx->vk_device, &info, nullptr, &ctx->vk_depth_stencil_image));
 	}
 
+	// find_memory_type_device
+	{
+		for (size_t memory_type_idx = 0; memory_type_idx < static_cast<size_t>(ctx->vk_physical_device_memory_properties.memoryTypeCount); memory_type_idx += 1) {
+			VkMemoryPropertyFlags flags = ctx->vk_physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
+			if (HAS_FLAG(flags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && !HAS_FLAG(flags, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) && !HAS_FLAG(flags, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) && !HAS_FLAG(flags, VK_MEMORY_PROPERTY_HOST_CACHED_BIT) && !HAS_FLAG(flags, VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT)) {
+				ctx->vk_memory_type_device = memory_type_idx;
+				break;
+			}
+		}
+	}
+
+	// find_memory_type_host
+	{
+		for (size_t memory_type_idx = 0; memory_type_idx < static_cast<size_t>(ctx->vk_physical_device_memory_properties.memoryTypeCount); memory_type_idx += 1) {
+			VkMemoryPropertyFlags flags = ctx->vk_physical_device_memory_properties.memoryTypes[memory_type_idx].propertyFlags;
+			if (!HAS_FLAG(flags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) && HAS_FLAG(flags, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) {
+				ctx->vk_memory_type_host = memory_type_idx;
+				break;
+			}
+		}
+	}
+
 	// create_depth_stencil_image_memory
 	{
 		VkMemoryRequirements mem_req;
@@ -530,7 +539,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		VkMemoryAllocateInfo mem_info{
 			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 			.allocationSize = mem_req.size,
-			.memoryTypeIndex = ctx->find_memory_type(mem_req.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+			.memoryTypeIndex = static_cast<uint32_t>(ctx->vk_memory_type_device),
 		};
 
 		VK_CHECK(vkAllocateMemory(ctx->vk_device, &mem_info, nullptr, &ctx->vk_depth_stencil_image_memory));
@@ -574,7 +583,11 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 	
 	// create_texture_image
 	{
-		ctx->surf = IMG_Load("viking_room.png");
+		{
+			SDL_Surface* raw_surf = IMG_Load("viking_room.png");
+			ctx->surf = SDL_ConvertSurface(raw_surf, SDL_PIXELFORMAT_RGBA32);
+			SDL_DestroySurface(raw_surf);
+		}
 
 		ctx->vk_image_info = {
 			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -598,7 +611,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		VkMemoryAllocateInfo mem_info{ 
 			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 			.allocationSize = mem_req.size,
-			.memoryTypeIndex = ctx->find_memory_type(mem_req.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+			.memoryTypeIndex = static_cast<uint32_t>(ctx->vk_memory_type_device),
 		};
 		
 		VK_CHECK(vkAllocateMemory(ctx->vk_device, &mem_info, nullptr, &ctx->vk_image_memory));
@@ -636,11 +649,47 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		VK_CHECK(vkCreateSampler(ctx->vk_device, &info, nullptr, &ctx->vk_sampler));
 	}
 
+	// load_model
+	{
+		tinyobj::attrib_t attrib;
+		std::vector<tinyobj::shape_t> shapes;
+		std::vector<tinyobj::material_t> materials;
+		std::string warn, err;
+
+		bool ok = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, "viking_room.obj");
+		SDL_assert(ok);
+
+		std::unordered_map<Vertex, uint32_t> unique_vertices;
+
+		for (const auto& shape : shapes) {
+			for (const auto& index : shape.mesh.indices) {
+				Vertex vertex{};
+
+				vertex.pos.x = attrib.vertices[3 * index.vertex_index + 0];
+				vertex.pos.y = attrib.vertices[3 * index.vertex_index + 1];
+				vertex.pos.z = attrib.vertices[3 * index.vertex_index + 2];
+				
+				vertex.color.x = 1.0f;
+				vertex.color.y = 1.0f;
+				vertex.color.z = 1.0f;
+
+				vertex.tex_coord.x = attrib.texcoords[2 * index.texcoord_index + 0];
+				vertex.tex_coord.y = 1.0f - attrib.texcoords[2 * index.texcoord_index + 1];
+				
+				if (unique_vertices.count(vertex) == 0) {
+					unique_vertices[vertex] = static_cast<uint32_t>(ctx->vertices.size());
+					ctx->vertices.push_back(vertex);
+				}
+				ctx->indices.push_back(unique_vertices[vertex]);
+			}
+		}
+	}
+
 	// create_vertex_buffer
 	{
 		VkBufferCreateInfo buffer_info{ 
 			.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-			.size = sizeof(g_vertices),
+			.size = ctx->vertices.size() * sizeof(ctx->vertices[0]),
 			.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
 		};
@@ -653,7 +702,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		VkMemoryAllocateInfo mem_info{ 
 			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 			.allocationSize = mem_req.size,
-			.memoryTypeIndex = ctx->find_memory_type(mem_req.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+			.memoryTypeIndex = static_cast<uint32_t>(ctx->vk_memory_type_device),
 		};
 		
 		VK_CHECK(vkAllocateMemory(ctx->vk_device, &mem_info, nullptr, &ctx->vk_vertex_buffer_memory));
@@ -664,7 +713,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 	{
 		VkBufferCreateInfo buffer_info{ 
 			.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-			.size = sizeof(g_indices),
+			.size = ctx->indices.size() * sizeof(ctx->indices[0]),
 			.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
 		};
@@ -677,7 +726,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		VkMemoryAllocateInfo mem_info{ 
 			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, 
 			.allocationSize = mem_req.size,
-			.memoryTypeIndex = ctx->find_memory_type(mem_req.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+			.memoryTypeIndex = static_cast<uint32_t>(ctx->vk_memory_type_device),
 		};
 		
 		VK_CHECK(vkAllocateMemory(ctx->vk_device, &mem_info, nullptr, &ctx->vk_index_buffer_memory));
@@ -688,7 +737,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 	{
 		VkBufferCreateInfo buffer_info{ 
 			.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-			.size = sizeof(g_vertices) + sizeof(g_indices) + (ctx->surf->w * ctx->surf->h * 4),
+			.size = ctx->vertices.size() * sizeof(ctx->vertices[0]) + ctx->indices.size() * sizeof(ctx->indices[0]) + (ctx->surf->w * ctx->surf->h * 4),
 			.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
 		};
@@ -700,7 +749,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		VkMemoryAllocateInfo mem_info{ 
 			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 			.allocationSize = mem_req.size,
-			.memoryTypeIndex = ctx->find_memory_type(mem_req.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT),
+			.memoryTypeIndex = static_cast<uint32_t>(ctx->vk_memory_type_host),
 		};
 		
 		VK_CHECK(vkAllocateMemory(ctx->vk_device, &mem_info, nullptr, &ctx->vk_staging_buffer_memory));
@@ -708,11 +757,11 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 
 		void* data;
 		VK_CHECK(vkMapMemory(ctx->vk_device, ctx->vk_staging_buffer_memory, 0, buffer_info.size, 0, &data));
-		SDL_memcpy(data, g_vertices.data(), sizeof(g_vertices));
-		uint64_t offset = reinterpret_cast<uint64_t>(data) + sizeof(g_vertices);
-		SDL_memcpy(reinterpret_cast<void*>(offset), g_indices.data(), sizeof(g_indices));
-		offset += sizeof(g_indices);
-		SDL_memcpy(reinterpret_cast<void*>(offset), ctx->surf->pixels, ctx->surf->w* ctx->surf->h * 4);
+		SDL_memcpy(data, ctx->vertices.data(), ctx->vertices.size() * sizeof(ctx->vertices[0]));
+		uintptr_t offset = reinterpret_cast<uintptr_t>(data) + ctx->vertices.size() * sizeof(ctx->vertices[0]);
+		SDL_memcpy(reinterpret_cast<void*>(offset), ctx->indices.data(), ctx->indices.size() * sizeof(ctx->indices[0]));
+		offset += ctx->indices.size() * sizeof(ctx->indices[0]);
+		SDL_memcpy(reinterpret_cast<void*>(offset), ctx->surf->pixels, ctx->surf->w * ctx->surf->h * 4);
 		vkUnmapMemory(ctx->vk_device, ctx->vk_staging_buffer_memory);
 	}
 
@@ -732,7 +781,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		VkMemoryAllocateInfo mem_info{ 
 			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 			.allocationSize = mem_req.size,
-			.memoryTypeIndex = ctx->find_memory_type(mem_req.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT),
+			.memoryTypeIndex = static_cast<uint32_t>(ctx->vk_memory_type_host),
 		};
 
 		VK_CHECK(vkAllocateMemory(ctx->vk_device, &mem_info, nullptr, &ctx->vk_uniform_buffer_memory));
@@ -894,16 +943,16 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
 		ctx->vk_staged = true;
 
 		{
-			VkBufferCopy region{ 0, 0, sizeof(g_vertices) };
+			VkBufferCopy region{ 0, 0, ctx->vertices.size() * sizeof(ctx->vertices[0]) };
 			vkCmdCopyBuffer(cb, ctx->vk_staging_buffer, ctx->vk_vertex_buffer, 1, &region);
 		}
 		{
-			VkBufferCopy region{ sizeof(g_vertices), 0, sizeof(g_indices) };
+			VkBufferCopy region{ ctx->vertices.size() * sizeof(ctx->vertices[0]), 0, ctx->indices.size() * sizeof(ctx->indices[0]) };
 			vkCmdCopyBuffer(cb, ctx->vk_staging_buffer, ctx->vk_index_buffer, 1, &region);
 		}
 
 		{
-			VkImageMemoryBarrier barrier{ 
+			VkImageMemoryBarrier barrier{
 				.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
 				.srcAccessMask = 0,
 				.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
@@ -919,7 +968,7 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
 		}
 		{
 			VkBufferImageCopy region{
-				.bufferOffset = sizeof(g_vertices) + sizeof(g_indices),
+				.bufferOffset = ctx->vertices.size() * sizeof(ctx->vertices[0]) + ctx->indices.size() * sizeof(ctx->indices[0]),
 				.imageSubresource = { .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .layerCount = 1 },
 				.imageExtent = ctx->vk_image_info.extent,
 			};
@@ -936,7 +985,7 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
 				.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 				.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 				.image = ctx->vk_image,
-				.subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .levelCount = 1, .layerCount = 1},
+				.subresourceRange = { .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .levelCount = 1, .layerCount = 1 },
 			};
 
 			vkCmdPipelineBarrier(cb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
@@ -952,16 +1001,16 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
 			.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 			.image = ctx->vk_image,
-			.subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .levelCount = 1, .layerCount = 1},
+			.subresourceRange = { .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .levelCount = 1, .layerCount = 1 },
 		};
 		vkCmdPipelineBarrier(cb, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 	}
 
 	{
-		std::array<VkClearValue, 2> clear_values{ VkClearValue
-			{ .color = { .float32 = {0.0f, 0.0f, 0.0f, 1.0f}}},
-			{ .depthStencil = { 1, 0 } },
-		};
+
+		std::array<VkClearValue, 2> clear_values{};
+		clear_values[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+		clear_values[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo info{ 
 			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
@@ -987,7 +1036,7 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
 	vkCmdBindIndexBuffer(cb, ctx->vk_index_buffer, 0, VK_INDEX_TYPE_UINT16);
 
 	vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->vk_pipeline_layout, 0, 1, &ctx->vk_descriptor_set[ctx->vk_current_frame], 0, nullptr);
-	vkCmdDrawIndexed(cb, static_cast<uint32_t>(g_indices.size()), 1, 0, 0, 0);
+	vkCmdDrawIndexed(cb, static_cast<uint32_t>(ctx->indices.size()), 1, 0, 0, 0);
 
 	vkCmdEndRenderPass(cb); 
 
@@ -999,10 +1048,10 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
 		float time = static_cast<float>(current_time - ctx->start_time) / NS_PER_SECOND;
 
 		UniformBufferObject ubo{};
-		ubo.model = glm::rotate(glm::mat4{ 1.0f }, time * glm::radians(90.0f), glm::vec3{ 0.0f, 0.0f, 1.0f });
+		ubo.model = glm::rotate(glm::mat4{ 1.0f }, time * glm::radians(90.0f), glm::vec3{ 0.0f, 1.0f, 0.0f });
 		ubo.view = glm::lookAt(glm::vec3{ 2.0f, 2.0f, 2.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 1.0f });
 		ubo.proj = glm::perspective(glm::radians(45.0f), 16.0f / 9.0f, 0.1f, 10.0f);
-		uint64_t dest = reinterpret_cast<uint64_t>(ctx->vk_uniform_buffer_mapped) + ctx->vk_current_frame * sizeof(UniformBufferObject);
+		uintptr_t dest = reinterpret_cast<uintptr_t>(ctx->vk_uniform_buffer_mapped) + ctx->vk_current_frame * sizeof(UniformBufferObject);
 		SDL_memcpy(reinterpret_cast<void*>(dest), &ubo, sizeof(ubo));
 	}
 
@@ -1061,14 +1110,8 @@ void SDL_AppQuit(void* appstate, SDL_AppResult result) {
 	SDL_Quit();
 }
 
-
-uint32_t Context::find_memory_type(uint32_t memory_types, VkMemoryPropertyFlags properties) {
-	for (uint32_t memory_type = 0; memory_type < this->vk_physical_device_memory_properties.memoryTypeCount; memory_type++) {
-		if (HAS_FLAG(memory_types, 1 << memory_type) && HAS_FLAG(this->vk_physical_device_memory_properties.memoryTypes[memory_type].propertyFlags, properties)) {
-			return memory_type;
-		}
-	}
-	return 0;
+bool Vertex::operator==(const Vertex& other) const {
+	return pos == other.pos && color == other.color && tex_coord == other.tex_coord;
 }
 
 #pragma warning(pop)

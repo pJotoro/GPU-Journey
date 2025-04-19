@@ -10,13 +10,17 @@
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/hash.hpp>
 
 #include "tiny_obj_loader.h"
 
 #include <array>
 #include <span>
+#include <vector> // TODO
+
 
 #include "arena.h"
 
@@ -37,7 +41,19 @@ struct Vertex {
 	glm::vec3 pos;
 	glm::vec3 color;
 	glm::vec2 tex_coord;
+
+	bool operator==(const Vertex& other) const;
 };
+
+namespace std {
+	template<> struct hash<Vertex> {
+		size_t operator()(Vertex const& vertex) const {
+			return ((hash<glm::vec3>()(vertex.pos) ^
+				(hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
+				(hash<glm::vec2>()(vertex.tex_coord) << 1);
+		}
+	};
+}
 
 struct UniformBufferObject {
 	alignas(16) glm::mat4 model, view, proj;
@@ -104,6 +120,9 @@ struct Context {
 
 	size_t vk_current_frame;
 
+	std::vector<Vertex> vertices;
+	std::vector<uint32_t> indices;
+
 	VkBuffer vk_vertex_buffer;
 	VkDeviceMemory vk_vertex_buffer_memory;
 
@@ -132,7 +151,8 @@ struct Context {
 
 	VkSampler vk_sampler;
 
-	uint32_t find_memory_type(uint32_t memory_types, VkMemoryPropertyFlags properties);
+	size_t vk_memory_type_device;
+	size_t vk_memory_type_host;
 
 	// ------------------
 };

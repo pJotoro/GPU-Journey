@@ -10,9 +10,6 @@
     <Filter Include="VulkanSDK\Volk">
       <UniqueIdentifier>{957017b2-88a7-4ca2-915b-4b46bbb87d22}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders">
-      <UniqueIdentifier>{980a5870-f753-4fda-ae03-6baa72de3be8}</UniqueIdentifier>
-    </Filter>
     <Filter Include="SDL3">
       <UniqueIdentifier>{c71f5d29-2f8b-481f-9343-0810852cfcb6}</UniqueIdentifier>
     </Filter>
@@ -36,6 +33,9 @@
     </Filter>
     <Filter Include="tinyobjloader">
       <UniqueIdentifier>{b5090421-94a5-46f8-9fbd-cb925aaf1bf2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{980a5870-f753-4fda-ae03-6baa72de3be8}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -1237,10 +1237,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="shader.frag">
-      <Filter>Shaders</Filter>
+      <Filter>shaders</Filter>
     </None>
     <None Include="shader.vert">
-      <Filter>Shaders</Filter>
+      <Filter>shaders</Filter>
     </None>
     <None Include="compile_shaders.bat" />
     <None Include="..\..\..\glm\glm\ext\matrix_integer.inl">
