@@ -21,7 +21,6 @@
 #include <span>
 #include <vector> // TODO
 
-
 #include "arena.h"
 
 #define KILOBYTE(X) ((X)*1024LL)

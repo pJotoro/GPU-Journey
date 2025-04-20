@@ -1033,7 +1033,7 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
 		vkCmdBindVertexBuffers(cb, 0, 1, &ctx->vk_vertex_buffer, &offset);
 	}
 
-	vkCmdBindIndexBuffer(cb, ctx->vk_index_buffer, 0, VK_INDEX_TYPE_UINT16);
+	vkCmdBindIndexBuffer(cb, ctx->vk_index_buffer, 0, VK_INDEX_TYPE_UINT32);
 
 	vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->vk_pipeline_layout, 0, 1, &ctx->vk_descriptor_set[ctx->vk_current_frame], 0, nullptr);
 	vkCmdDrawIndexed(cb, static_cast<uint32_t>(ctx->indices.size()), 1, 0, 0, 0);
@@ -1048,8 +1048,8 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
 		float time = static_cast<float>(current_time - ctx->start_time) / NS_PER_SECOND;
 
 		UniformBufferObject ubo{};
-		ubo.model = glm::rotate(glm::mat4{ 1.0f }, time * glm::radians(90.0f), glm::vec3{ 0.0f, 1.0f, 0.0f });
-		ubo.view = glm::lookAt(glm::vec3{ 2.0f, 2.0f, 2.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 1.0f });
+		ubo.model = glm::rotate(glm::mat4{ 1.0f }, glm::sin(time) * glm::radians(30.0f), glm::vec3{ 0.0f, 0.0f, 1.0f });
+		ubo.view = glm::lookAt(glm::vec3{ 2.0f, 2.0f, 2.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, -1.0f });
 		ubo.proj = glm::perspective(glm::radians(45.0f), 16.0f / 9.0f, 0.1f, 10.0f);
 		uintptr_t dest = reinterpret_cast<uintptr_t>(ctx->vk_uniform_buffer_mapped) + ctx->vk_current_frame * sizeof(UniformBufferObject);
 		SDL_memcpy(reinterpret_cast<void*>(dest), &ubo, sizeof(ubo));
@@ -1107,7 +1107,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
 }
 
 void SDL_AppQuit(void* appstate, SDL_AppResult result) {
-	SDL_Quit();
+
 }
 
 bool Vertex::operator==(const Vertex& other) const {
